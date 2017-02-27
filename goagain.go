@@ -170,7 +170,11 @@ func Listener() (l net.Listener, err error) {
 	if _, err = fmt.Sscan(os.Getenv("GOAGAIN_FD"), &fd); nil != err {
 		return
 	}
-	l, err = net.FileListener(os.NewFile(fd, os.Getenv("GOAGAIN_NAME")))
+	// NewFile takes over the fd but FileListener makes its own copy. Make sure
+	// to clean up the former.
+	fdf := os.NewFile(fd, os.Getenv("GOAGAIN_NAME"))
+	defer fdf.Close()
+	l, err = net.FileListener(fdf)
 	if nil != err {
 		return
 	}
@@ -183,9 +187,7 @@ func Listener() (l net.Listener, err error) {
 		)
 		return
 	}
-	if err = syscall.Close(int(fd)); nil != err {
-		return
-	}
+
 	return
 }
 
